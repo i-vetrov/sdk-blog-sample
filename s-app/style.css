@@ -57,12 +57,17 @@ input[type="text"] {
   font-size: 18px;
   font-weight: bold;
 }
+.app-title a {
+  color: #4f4f4f;
+  text-decoration: none;
+}
 .app-category {
   font-size: 13px;
   font-weight: bold;
 }
 .stars-holder {
   display:inline-block;
+  margin-left: 4px;
 }
 .app-rating {
   margin-top: 10px;
@@ -74,6 +79,8 @@ input[type="text"] {
 .rating-star {
   padding-top: 0px;
   color: #e24f43;
+  position: relative;
+  top: 2px;
 }
 
 .app-data {
@@ -110,13 +117,26 @@ input[type="text"] {
 }
 .app-screenshot {
   background-color: #cccccc;
-  width: 100%;
-  min-height: 220px;
   border: 18px solid #484a52;
+  max-width: 200px;
 }
 .app-description {
   border: 1px solid #6cc2d3;
   padding: 16px;
   margin-top: 10px;
   margin-bottom: 11px;
+}
+.store-icon {
+  text-align: center;
+  display: inherit;
+  font-size: 30px;
+  line-height: 42px;
+}
+.btn-red {
+  background-color: #e24f43;
+  border-color: #e24f43;
+}
+.search-button-loader {
+  width: 20px;
+  height: 20px;
 }
