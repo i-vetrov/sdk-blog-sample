@@ -1,137 +1,84 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Airomo Search SDK Sample App</title>
+    <title>Airomo Search SDK App</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
     <link href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet">
-    <!-- Airomo styles -->        
-        <link rel="stylesheet" href="http://www.appcurl.com/_index.css?v=84">
-        <!--<![endif]--><!--[if IE 6]><link rel="stylesheet" href="http://www.appcurl.com/_index.ie6.css"/><![endif]-->
-        <!--[if IE 7]><link rel="stylesheet" href="http://www.appcurl.com/_index.ie7.css"/><![endif]-->
-        <!--[if IE 8]><link rel="stylesheet" href="http://www.appcurl.com/_index.ie8.css"/><![endif]-->
-        <!--[if IE 9]><link rel="stylesheet" href="http://www.appcurl.com/_index.ie9.css"/><![endif]-->   
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="results-style.css">
     <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
     <script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.2/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="http://static.airomo.net/js-sdk/airomo.min.js"></script>
     <script type="text/javascript" src="app.js"></script>
+    <script>
+        var $handleResponse = function(event) {
+            
+            var recivedData = JSON.parse(event.data);
+            if(recivedData.message === 'search-results') {
+                renderResults(recivedData.data)
+            }
+        };
+        if(window.addEventListener) {
+            window.addEventListener('message', $handleResponse, false);
+        }
+        else if(window.attachEvent) {
+            window.attachEvent('message', $handleResponse);
+        }
+        
+        window.parent.postMessage('results-ready', '*');
+    </script>
   </head>
   <body>
-    <div class="container" id="header">
-      <header>
-        <div class="row form-group">
-          <div class="col-lg-2 col-md-2 col-sm-2 hidden-xs"><a href="http://www.appcurl.com/"><img style="display:block; margin: 0 auto;" src="images/logo.png" /></a></div>
-          <div class="col-lg-8 col-md-8 col-sm-8 col-xs-9 input-group-lg" style="padding-top: 10px;">
+    
+    <div class="navbar" id="header">
+      <header class="container">
+        <div class="close-that-popup" onclick="closePopup()">
+            <span>Close</span>
+        </div>  
+        <div class="row form-group header-row">
+          <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2 logo-holder">
+              <a href="http://www.appcurl.com/" target="_blank">
+                  <div class="logo-border"></div>
+              </a>
+          </div>
+          <div class="col-lg-8 col-md-8 col-sm-8 col-xs-7 input-group-lg" style="padding-top: 10px;">
             <input type="text" id="query-input" class="form-control" onkeypress="keyListener(event)" />
           </div>
-          <div class="col-lg-2 col-md-2 col-sm-2 col-xs-3 visible-xs visible-sm" style="padding-top: 10px;">
-            <button class="btn btn-default btn-lg button-s" onclick="doSearch()" style="width: 52px; height: 45px;">
+          <!--div class="col-lg-2 col-md-2 col-sm-2 col-xs-3 hidden-lg hidden-md" style="padding-top: 10px;">
+            <button class="btn btn-default btn-lg button-s" onclick="doSearch(null)" style="width: 52px; height: 45px;">
               <span class="glyphicon glyphicon-search search-text-icon"></span>
               <img class="search-button-loader" style="display:none;" src="images/loader.gif" />
             </button>
-          </div>
-          <div class="col-lg-2 hidden-xs hidden-sm" style="padding-top: 10px;">
-            <button type="submit" onclick="doSearch()" class="btn btn-default btn-lg button-s" style="width: 91px; height: 45px;">
-              <span class="search-text-icon">Search</span>
+          </div-->
+          <div class="col-lg-1 col-md-1 col-sm-1 col-xs-1" style="padding-top: 10px;">
+            <button type="submit" onclick="doSearch(null)" class="btn btn-default btn-lg button-s" style="width: 91px; height: 45px;">
+              <span class="search-text-icon">Go</span>
               <img class="search-button-loader" style="display:none;" src="images/loader.gif" />
             </button>
           </div>
         </div>
       </header>
     </div>
-    <div class="container" style="margin-top: 4px; background-color: #d8d5d5; color: #4f4f4f;">
-      <div id="total-apps" class="row" style="display:none; margin-bottom: 2px;">
-        <div class="col-lg-12"><span id="total-res"></span> Apps found!</div>
+    <div id="total-apps" class="container results-holder" style="display:none;">
+      <div class="row" style="margin-bottom: 2px;">
+        <div class="col-lg-12"><span id="total-res"></span> apps found!</div>
+        <div class="powered-by">Powered by airomo</div>
       </div>
-    </div>
+    </div>  
     <div class="container" style="margin-top: 2px; background-color: #d8d5d5; color: #4f4f4f;">
       <div class="col-lg-6 col-md-6 hidden-xs hidden-sm" id="left" style="padding-left: 0; border-right: 1px solid #f0f0f0;"></div> 
       <div class="col-lg-6 col-md-6 hidden-xs hidden-sm" id="right" style="padding-right: 0;"></div>
       <div id="single" class="col-lg-12 visible-xs visible-sm hidden-lg hidden-md"></div>
     </div>
-    <div class="container" id="more-res" onclick="nextPage()" style="margin-top: 2px; display:none; padding: 10px; cursor:pointer;">
-      <div style="width: 79px; margin:0 auto;">
-        <span class="search-text-icon">More results</span>
-        <img class="search-button-loader" style="display:none; margin: 0 auto; display: block;" src="images/loader.gif" />
-      </div>
-    </div>
-    
-    
-    <div class="container" style="background: #3d3d3d;">
-      <div class="appcurl-footer i-bem appcurl-footer_js_inited appcurl-footer_visibility_hidden">
-        <div class="appcurl-footer__expand">
-          <span class="appcurl-footer__expand-button appcurl-footer__expand-button_type_expand">More options</span>
-          <span class="appcurl-footer__expand-button appcurl-footer__expand-button_type_collapse">Copyright at airomo.com</span>
-        </div>
-        <div class="appcurl-footer__content">
-          <div class="appcurl-footer__content-inner">
-            <div class="appcurl-footer__col appcurl-footer__col_num_1">
-              <div class="appcurl-footer__caption">ABOUT US</div>
-              Appcurl is an app built over the airomo cloud. Airomo cloud is the mobile cloud platform 
-              from <a class="b-link" href="http://www.airomo.com/company/">Airomo Inc.</a>, the mobile 
-              lifestyle management company.
-            </div>
-            <div class="appcurl-footer__col appcurl-footer__col_num_2">
-              <div class="appcurl-footer__caption">APPCURL APPS</div>
-              <a class="b-link" href="https://play.google.com/store/apps/details?id=com.airomo.appcurl">Google Play</a>
-              <br>
-              <a class="b-link" href="http://www.amazon.com/Airupt-Inc-AppCurl/dp/B008RBMML4/">Amazon app store</a>
-              <br>
-              <a class="b-link" href="http://www.barnesandnoble.com/w/appcurl-search-apps-and-games-airomo/1114940843">Nook app store</a>
-              <br>
-              <a class="b-link" href="http://apps.facebook.com/www-appcurl-com/">Facebook app store</a>
-            </div>
-            <div class="appcurl-footer__col appcurl-footer__col_num_3">
-              <div class="appcurl-footer__caption">LINKS</div>
-              <a class="b-link" href="http://www.appcurl.com/submit/">Submit apps</a>
-              <br>
-              <a class="b-link" href="http://www.appcurl.com/blog/">Appcurl blogs</a>
-              <br>
-              <a class="b-link" href="http://blog.airomo.com/?cat=7">How to guides</a>
-              <br>
-              <a class="b-link" href="http://www.appcurl.com/privacy.html">Airomo Privacy policy</a>
-            </div>
-            <div class="appcurl-footer__col appcurl-footer__col_num_4">
-              <div class="appcurl-footer__caption">SOCIAL MEDIA</div>
-              <a class="b-link" href="http://www.facebook.com/Appcurl">
-                <div class="appcurl-footer__icon appcurl-footer__icon_type_facebook"></div>
-              </a> 
-              <a class="b-link" href="https://twitter.com/appcurl">
-                <div class="appcurl-footer__icon appcurl-footer__icon_type_twitter"></div>
-              </a> 
-              <a class="b-link" href="https://plus.google.com/108272425831609901542/posts">
-                  <div class="appcurl-footer__icon appcurl-footer__icon_type_google"></div>
-              </a> 
-              <a class="b-link" href="http://www.linkedin.com/company/airomo-inc/appcurl-1359335/product">
-                <div class="appcurl-footer__icon appcurl-footer__icon_type_linkedin"></div>
-              </a>
-            </div>
+    <div class="navbar results-footer">
+        <div class="container" id="more-res" style="margin-top: 2px; padding: 10px;">
+          <span class="airomo-link"><a href="http://www.airomo.com/">www.airomo.com</a></span>  
+          <div class="next-page-holder" onclick="nextPage()">
+            <span class="search-text-icon">More results</span>
+            <img class="search-button-loader" style="display:none; margin: 0 auto;" src="images/loader.gif" />
           </div>
+          <div id="go-up" onclick="scrollTopZ()">Go Up</div>
         </div>
-        <style>  
-              .appcurl-footer__col_num_1 {width: 31.2%;}
-              .appcurl-footer__col_num_2 {width: 24%;}
-              .appcurl-footer__col_num_3 {width: 22.8%;}
-              .appcurl-footer {
-                position: relative !important;
-                bottom: 0;
-                width: 100%;
-                cursor: default;
-              }
-        </style>
-      </div>
-    </div>
-    <script>
-      jQuery('.appcurl-footer__expand-button').click(function() {
-                if(jQuery('.appcurl-footer').hasClass('appcurl-footer_visibility_hidden')) {
-                  jQuery('.appcurl-footer').removeClass('appcurl-footer_visibility_hidden').addClass('appcurl-footer_visibility_visible');
-                  jQuery('html, body').animate({scrollTop: jQuery(document).height()}, 0);
-                }
-                else {
-                  jQuery('.appcurl-footer').removeClass('appcurl-footer_visibility_visible').addClass('appcurl-footer_visibility_hidden');
-                }
-          });
-    </script>
+    </div>  
   </body>
-</html>
+</html>   

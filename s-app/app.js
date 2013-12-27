@@ -2,7 +2,9 @@ airomo.setEnv({clientId:582169394, apiKey:'k60vg92ehyplqi99fhlnz1bpbxgmvudw'});
 var totalResults = 0;
 var page = 0;
 var pageSize = 20;
-var currentQuery = '';
+
+var currentQuery = {};
+
 var appTemplate =  '<div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 main-app-holder">' +
   '<div class="row app-data-row">' +
   '<div class="app-icon-holder">' +
@@ -40,7 +42,9 @@ var appTemplate =  '<div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 main-app
   '</div>' +
   '</div> ' +
   '<div class="row">' +
-  '<img src="{{screenshot}}" class="app-screenshot" />' +
+  '<div class="app-screenshot">'+
+  '<img src="{{screenshot}}" />' +
+  '</div>' +
   '</div>' +
   '<div class="row">' +
   '<div class="app-description">' +
@@ -73,7 +77,7 @@ function renderResults(results) {
       free = '';
     }
     var curApp = appTemplate
-      .replace(new RegExp('{{applink}}', 'g'), e.nativeUrl)
+      .replace(new RegExp('{{applink}}', 'g'), e.trackingUrl)
       .replace('{{title}}', e.title.length > 30 ? e.title.substring(0,30) + '...' : e.title)
       .replace('{{icon}}', e.icon)
       .replace('{{category}}', catList[e.categories.pop() || 0])
@@ -96,15 +100,34 @@ function renderResults(results) {
   });   
 }
 
-function doSearch() {
+function doSearch(query, store) {
   $('.search-text-icon').hide();
   $('.search-button-loader').show();
-  var query = $('#query-input').val();
-  currentQuery = query;
+  if(query === null) {
+    query = $('#query-input').val();
+  }
+  else {
+    $('#query-input').val(query);
+  }
   $('#left').html('');
   $('#right').html('');
   $('#single').html('');
-  airomo.search({query:query, size: pageSize}, function(err, data) {
+  
+  var queryToServer = {
+    size: pageSize
+  };
+  if(query.substring(0,7) === 'http://' || query.substring(0,8)  === 'https://') {
+    queryToServer.url = query;
+  }
+  else {
+    queryToServer.query = query;
+  }
+  if(store) {
+    queryToServer.platforms = [store];
+  }
+  console.log(queryToServer)
+  currentQuery = queryToServer;
+  airomo.search(queryToServer, function(err, data) {
     if(!err) {
       page = 1;
       totalResults = data.total;
@@ -123,10 +146,57 @@ function doSearch() {
   });
 }
 
+function doAdvancedSearch(query, type, store) {
+  $('.search-text-icon').hide();
+  $('.search-button-loader').show();
+  
+  $('#left').html('');
+  $('#right').html('');
+  $('#single').html('');
+  var forSR = {size: pageSize};
+  if(type === 'dynamic') {
+    forSR.url = query;
+  } else if(type === 'static') {
+    forSR.url = query; 
+  } else if(type === 'keywords'){
+    forSR.metaKeywords = query;
+  } else if (type === 'kwlist') {
+    forSR.metaKeywords = query;
+  }
+  if(store) {
+    forSR.platforms = [store];
+  }
+  currentQuery = forSR;
+  airomo.search(forSR, function(err, data) {
+    if(!err) {
+      page = 1;
+      totalResults = data.total;
+      $('#total-res').html(totalResults);
+      $('#total-apps').show();
+      if(totalResults>pageSize) {
+        $('#more-res').show();
+      }
+      renderResults(data.results);
+      $('.search-text-icon').show();
+      $('.search-button-loader').hide();
+    }
+    else {
+      console.log('Something went wrong...', err);
+    }
+  });
+}
+
+function scrollTopZ() {
+  window.scrollTo(0, 0);
+}
+
 function nextPage() {
   $('.search-text-icon').hide();
   $('.search-button-loader').show();
-  airomo.search({query:currentQuery, size: pageSize, offset:pageSize*page}, function(err, data) {
+  var nextPageQuery = currentQuery;
+  nextPageQuery.size = pageSize;
+  nextPageQuery.offset = pageSize*page;
+  airomo.search(nextPageQuery, function(err, data) {
     if(!err) {
       page++;
       renderResults(data.results);
@@ -148,6 +218,30 @@ function install(url) {
 
 function keyListener(event) {
   if(event.keyCode == 13){
-    doSearch();
+   // doSearch(null);
   }
+}
+
+function closePopup() {
+  onCloseMessage = {
+    message: 'close-popup',
+    currentQuery: currentQuery
+  }
+  window.parent.postMessage(JSON.stringify(onCloseMessage), '*');
+}
+
+var $handleResponse = function(event) {
+  var recivedData = JSON.parse(event.data);
+  if(recivedData.message === 'initiate-search') {
+    doSearch(recivedData.query, recivedData.store);
+  } else if(recivedData.message === 'advanced-search') {
+     doAdvancedSearch(recivedData.query, recivedData.queryType, recivedData.store);
+  }
+};
+
+if(window.addEventListener) {
+  window.addEventListener('message', $handleResponse, false);
+}
+else if(window.attachEvent) {
+  window.attachEvent('message', $handleResponse);
 }
